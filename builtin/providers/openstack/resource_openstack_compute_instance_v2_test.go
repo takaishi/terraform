@@ -566,6 +566,41 @@ func TestAccComputeV2Instance_floatingIPAttachAndChange(t *testing.T) {
 	})
 }
 
+func TestAccComputeV2Instance_floating_ip(t *testing.T) {
+	var instance servers.Server
+	var fip floatingips.FloatingIP
+	var testAccComputeV2Instance_floatingIPAttachGlobally = fmt.Sprintf(`
+		resource "openstack_compute_floatingip_v2" "myip" {
+		}
+
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+
+			network {
+				port = "%s"
+			        floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
+			}
+		}`,
+		os.Getenv("OS_PORT_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_floatingIPAttachGlobally,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.myip", &fip),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceFloatingIPAttach(&instance, &fip),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeV2Instance_multi_secgroups(t *testing.T) {
 	var instance_1 servers.Server
 	var secgroup_1 secgroups.SecurityGroup
@@ -1297,6 +1332,33 @@ func testAccCheckComputeV2InstanceVolumeDetached(instance *servers.Server, volum
 			if attachment.VolumeID == rs.Primary.ID {
 				return fmt.Errorf("Volume is still attached.")
 			}
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckComputeV2InstanceFloatingIP(instance *servers.Server) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		var attachments []volumeattach.VolumeAttachment
+
+		config := testAccProvider.Meta().(*Config)
+		computeClient, err := config.computeV2Client(OS_REGION_NAME)
+		if err != nil {
+			return err
+		}
+		err = volumeattach.List(computeClient, instance.ID).EachPage(func(page pagination.Page) (bool, error) {
+			actual, err := volumeattach.ExtractVolumeAttachments(page)
+			if err != nil {
+				return false, fmt.Errorf("Unable to lookup attachment: %s", err)
+			}
+
+			attachments = actual
+			return true, nil
+		})
+
+		if len(attachments) > 0 {
+			return fmt.Errorf("Can not set floating_ip with port.")
 		}
 
 		return nil
