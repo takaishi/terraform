@@ -47,7 +47,7 @@ The following arguments are supported:
     or __IPv6__. Changing this creates a new security group rule.
 
 * `protocol` - (Optional) The layer 4 protocol type, valid values are __tcp__,
-    __udp__ or __icmp__. This is required if you want to specify a port range.
+    __udp__ or __icmp__ or __vrrp__. This is required if you want to specify a port range.
     Changing this creates a new security group rule.
 
 * `port_range_min` - (Optional) The lower part of the allowed port range, valid

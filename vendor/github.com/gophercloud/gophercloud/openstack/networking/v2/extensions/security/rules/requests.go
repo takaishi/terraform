@@ -52,6 +52,7 @@ const (
 	ProtocolTCP  RuleProtocol  = "tcp"
 	ProtocolUDP  RuleProtocol  = "udp"
 	ProtocolICMP RuleProtocol  = "icmp"
+	ProtocolVRRP RuleProtocol  = "vrrp"
 	EtherType4   RuleEtherType = "IPv4"
 	EtherType6   RuleEtherType = "IPv6"
 )

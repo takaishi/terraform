@@ -236,6 +236,8 @@ func resourceNetworkingSecGroupRuleV2DetermineProtocol(v string) rules.RuleProto
 		protocol = rules.ProtocolUDP
 	case "icmp":
 		protocol = rules.ProtocolICMP
+	case "vrrp":
+		protocol = rules.ProtocolVRRP
 	}
 
 	return protocol

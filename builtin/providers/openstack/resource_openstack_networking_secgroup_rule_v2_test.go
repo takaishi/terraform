@@ -85,6 +85,32 @@ func TestAccNetworkingV2SecGroupRule_timeout(t *testing.T) {
 	})
 }
 
+func TestAccNetworkingV2SecGroupRule_vrrp(t *testing.T) {
+	var secgroup_1 groups.SecGroup
+	var secgroup_rule_1 rules.SecGroupRule
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNetworkingV2SecGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetworkingV2SecGroupRule_vrrp,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2SecGroupExists(
+						"openstack_networking_secgroup_v2.secgroup_1", &secgroup_1),
+					testAccCheckNetworkingV2SecGroupRuleExists(
+						"openstack_networking_secgroup_rule_v2.secgroup_rule_1", &secgroup_rule_1),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_secgroup_rule_v2.secgroup_rule_1", "remote_ip_prefix", "0.0.0.0/0"),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_secgroup_rule_v2.secgroup_rule_1", "protocol", "vrrp"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckNetworkingV2SecGroupRuleDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -220,9 +246,26 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_2" {
   protocol = "tcp"
   remote_group_id = "${openstack_networking_secgroup_v2.secgroup_1.id}"
   security_group_id = "${openstack_networking_secgroup_v2.secgroup_2.id}"
-
   timeouts {
     delete = "5m"
   }
+}
+`
+
+const testAccNetworkingV2SecGroupRule_vrrp = `
+resource "openstack_networking_secgroup_v2" "secgroup_1" {
+  name = "secgroup_1"
+  description = "terraform security group rule acceptance test"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_1" {
+  direction = "ingress"
+  ethertype = "IPv4"
+  port_range_max = 22
+  port_range_min = 22
+
+  protocol = "vrrp"
+  remote_ip_prefix = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_1.id}"
 }
 `
